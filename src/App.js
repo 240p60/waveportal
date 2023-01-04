@@ -114,6 +114,19 @@ export default function App() {
 						timestamp: new Date(wave.timestamp * 1000)
 					}))
 				);
+
+				wavePortalContract.on("NewWave", (from, timestamp, message) => {
+					console.log("NewWave", from, timestamp, message);
+
+					setAllWaves((prevState) => [
+						...prevState,
+						{
+							address: from,
+							timestamp: new Date(timestamp * 1000),
+							message: message
+						}
+					]);
+				});
 			} else {
 				console.log("Ethereum object doesn't exist!");
 			}
