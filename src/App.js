@@ -4,7 +4,7 @@ import abi from "./utils/WavePortal.json";
 import "./App.css";
 
 export default function App() {
-	const [currentAccount, setCurrentAccount] = useState("");
+	const [currentAccount, setCurrentAccount] = useState(null);
 	const [isSending, setIsSending] = useState(false);
 	const [allWaves, setAllWaves] = useState([]);
 
@@ -106,9 +106,14 @@ export default function App() {
 				 * Execute the actual wave from your smart contract
 				 */
 				const allWaves = await wavePortalContract.getAllWaves();
-				console.log(allWaves);
 
-				setAllWaves(allWaves);
+				setAllWaves(
+					allWaves.map((wave) => ({
+						waver: wave.waver,
+						message: wave.message,
+						timestamp: new Date(wave.timestamp * 1000)
+					}))
+				);
 			} else {
 				console.log("Ethereum object doesn't exist!");
 			}
@@ -118,11 +123,15 @@ export default function App() {
 	};
 
 	useEffect(() => {
-		const account = checkIfWalletIsConnected();
-		if (account) {
+		checkIfWalletIsConnected();
+	}, []);
+
+	useEffect(() => {
+		console.log(currentAccount);
+		if (currentAccount) {
 			getAllWaves();
 		}
-	}, []);
+	}, [currentAccount]);
 
 	return (
 		<div className="mainContainer">
@@ -144,7 +153,7 @@ export default function App() {
 					</button>
 				)}
 
-				{allWaves.length && (
+				{!!allWaves.length && (
 					<div className="all-waves">
 						<h2 style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
 							All Waves <button onClick={getAllWaves}>Reload</button>
