@@ -5,6 +5,8 @@ import "./App.css";
 
 export default function App() {
 	const [currentAccount, setCurrentAccount] = useState("");
+	const [isSending, setIsSending] = useState(false);
+	const [allWaves, setAllWaves] = useState([]);
 
 	const contractABI = abi.abi;
 	const contractAddress = process.env.REACT_APP_CONTRACT_ADDRESS;
@@ -30,11 +32,14 @@ export default function App() {
 				const account = accounts[0];
 				console.log("Found an authorized account:", account);
 				setCurrentAccount(account);
+				return account;
 			} else {
 				console.log("No authorized account found");
+				return null;
 			}
 		} catch (error) {
 			console.log(error);
+			return null;
 		}
 	};
 
@@ -71,11 +76,13 @@ export default function App() {
 				/*
 				 * Execute the actual wave from your smart contract
 				 */
-				const waveTxn = await wavePortalContract.wave();
+				const waveTxn = await wavePortalContract.wave("mock wave");
 				console.log("Mining...", waveTxn.hash);
+				setIsSending(true);
 
 				await waveTxn.wait();
 				console.log("Mined -- ", waveTxn.hash);
+				setIsSending(false);
 
 				count = await wavePortalContract.getTotalWaves();
 				console.log("Retrieved total wave count...", count.toNumber());
@@ -87,8 +94,34 @@ export default function App() {
 		}
 	};
 
+	const getAllWaves = async () => {
+		try {
+			const { ethereum } = window;
+
+			if (ethereum) {
+				const provider = new ethers.providers.Web3Provider(ethereum);
+				const signer = provider.getSigner();
+				const wavePortalContract = new ethers.Contract(contractAddress, contractABI, signer);
+				/*
+				 * Execute the actual wave from your smart contract
+				 */
+				const allWaves = await wavePortalContract.getAllWaves();
+				console.log(allWaves);
+
+				setAllWaves(allWaves);
+			} else {
+				console.log("Ethereum object doesn't exist!");
+			}
+		} catch (error) {
+			console.log(error);
+		}
+	};
+
 	useEffect(() => {
-		checkIfWalletIsConnected();
+		const account = checkIfWalletIsConnected();
+		if (account) {
+			getAllWaves();
+		}
 	}, []);
 
 	return (
@@ -102,13 +135,30 @@ export default function App() {
 				</div>
 
 				<button className="waveButton" onClick={wave}>
-					Wave at Me
+					{isSending ? "Loading..." : "Wave at Me"}
 				</button>
 
 				{!currentAccount && (
 					<button className="waveButton" onClick={connectWallet}>
 						Connect Wallet
 					</button>
+				)}
+
+				{allWaves.length && (
+					<div className="all-waves">
+						<h2 style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+							All Waves <button onClick={getAllWaves}>Reload</button>
+						</h2>
+						<div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+							{allWaves.map((wave) => (
+								<div key={wave.timestamp}>
+									<div>Address: {wave.waver}</div>
+									<div>Message: {wave.message}</div>
+									<div>Time: {wave.timestamp.toString()}</div>
+								</div>
+							))}
+						</div>
+					</div>
 				)}
 			</div>
 		</div>
